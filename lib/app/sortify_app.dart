@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../presentation/navigation/main_navigation_page.dart';
+import '../presentation/pages/login_page.dart';
+import '../presentation/providers/auth_provider.dart';
 
 class SortifyApp extends StatelessWidget {
   const SortifyApp({super.key});
@@ -15,7 +18,15 @@ class SortifyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const MainNavigationPage(),
+      home: Consumer<AuthProvider>(
+        builder: (context, authProvider, _) {
+          if (authProvider.isLoggedIn) {
+            return const MainNavigationPage();
+          } else {
+            return const LoginPage();
+          }
+        },
+      ),
     );
   }
 }

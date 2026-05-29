@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../pages/home_page.dart';
 import '../pages/guide_page.dart';
 import '../pages/map_page.dart';
-import '../pages/pickup_page.dart';
+import '../pages/waste_items_page.dart';
+import '../providers/auth_provider.dart';
 
 class MainNavigationPage extends StatefulWidget {
   const MainNavigationPage({super.key});
@@ -18,13 +20,29 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   final List<Widget> pages = const [
     HomePage(),
     GuidePage(),
+    WasteItemsPage(),
     MapPage(),
-    PickupPage(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Sortify'),
+        elevation: 0,
+        actions: [
+          PopupMenuButton(
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                child: const Text('Logout'),
+                onTap: () {
+                  _showLogoutConfirmation(context);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
       body: pages[selectedIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
@@ -45,14 +63,40 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
             label: 'Guide',
           ),
           NavigationDestination(
+            icon: Icon(Icons.recycling_outlined),
+            selectedIcon: Icon(Icons.recycling),
+            label: 'Items',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.map_outlined),
             selectedIcon: Icon(Icons.map),
             label: 'Map',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.local_shipping_outlined),
-            selectedIcon: Icon(Icons.local_shipping),
-            label: 'Pickup',
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout?'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await context.read<AuthProvider>().signOut();
+            },
+            child: const Text(
+              'Logout',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
