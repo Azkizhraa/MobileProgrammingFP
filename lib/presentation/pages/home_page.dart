@@ -17,12 +17,14 @@ class PageTemplate extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
+  final Widget? child;
 
   const PageTemplate({
     super.key,
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.child,
   });
 
   @override
@@ -51,6 +53,10 @@ class PageTemplate extends StatelessWidget {
               subtitle,
               style: Theme.of(context).textTheme.bodyLarge,
             ),
+            if (child != null) ...[
+              const SizedBox(height: 24),
+              Expanded(child: child!),
+            ],
           ],
         ),
       ),
