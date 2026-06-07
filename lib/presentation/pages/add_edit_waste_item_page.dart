@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../constants/waste_categories.dart';
 import '../../models/waste_item_model.dart';
+import '../providers/eco_stats_provider.dart';
 import '../providers/waste_item_provider.dart';
 
 class AddEditWasteItemPage extends StatefulWidget {
@@ -9,10 +10,10 @@ class AddEditWasteItemPage extends StatefulWidget {
   final bool isEditing;
 
   const AddEditWasteItemPage({
-    Key? key,
+    super.key,
     this.existingItem,
     this.isEditing = false,
-  }) : super(key: key);
+  });
 
   @override
   State<AddEditWasteItemPage> createState() => _AddEditWasteItemPageState();
@@ -30,8 +31,9 @@ class _AddEditWasteItemPageState extends State<AddEditWasteItemPage> {
   @override
   void initState() {
     super.initState();
-    _itemNameController =
-        TextEditingController(text: widget.existingItem?.itemName ?? '');
+    _itemNameController = TextEditingController(
+      text: widget.existingItem?.itemName ?? '',
+    );
     _pointsController = TextEditingController(
       text: widget.existingItem?.amount.toString() ?? '',
     );
@@ -97,6 +99,7 @@ class _AddEditWasteItemPageState extends State<AddEditWasteItemPage> {
       );
 
       final provider = context.read<WasteItemProvider>();
+      final ecoStatsProvider = context.read<EcoStatsProvider>();
       bool success;
 
       if (widget.isEditing && widget.existingItem != null) {
@@ -108,43 +111,47 @@ class _AddEditWasteItemPageState extends State<AddEditWasteItemPage> {
         success = await provider.createWasteItem(wasteItem);
       }
 
+      if (success && !widget.isEditing) {
+        if (!ecoStatsProvider.isInitialized) {
+          await ecoStatsProvider.init();
+        }
+        await ecoStatsProvider.incrementItemsLogged();
+      }
+
+      if (!context.mounted) return;
+
       setState(() {
         _isSubmitting = false;
       });
 
       if (success) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                widget.isEditing
-                    ? 'Waste item updated successfully'
-                    : 'Waste item created successfully',
-              ),
-              backgroundColor: Colors.green,
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.isEditing
+                  ? 'Waste item updated successfully'
+                  : 'Waste item created successfully',
             ),
-          );
-          Navigator.pop(context);
-        }
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
       } else {
-        if (mounted) {
-          final errorMsg = provider.errorMessage ?? 'Operation failed';
-          _showErrorSnackBar(errorMsg);
-        }
+        final errorMsg = provider.errorMessage ?? 'Operation failed';
+        _showErrorSnackBar(errorMsg);
       }
     } on FormatException {
+      if (!context.mounted) return;
       _showErrorSnackBar('Please enter a valid number for amount');
     } catch (e) {
+      if (!context.mounted) return;
       _showErrorSnackBar('Error: $e');
     }
   }
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -182,10 +189,7 @@ class _AddEditWasteItemPageState extends State<AddEditWasteItemPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   suffixIcon: _itemNameController.text.isNotEmpty
-                      ? Icon(
-                          Icons.check_circle,
-                          color: Colors.green[600],
-                        )
+                      ? Icon(Icons.check_circle, color: Colors.green[600])
                       : null,
                 ),
                 onChanged: (_) => setState(() {}),
@@ -201,7 +205,7 @@ class _AddEditWasteItemPageState extends State<AddEditWasteItemPage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _selectedCategory,
+                initialValue: _selectedCategory,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -243,8 +247,9 @@ class _AddEditWasteItemPageState extends State<AddEditWasteItemPage> {
                     flex: 1,
                     child: TextField(
                       controller: _pointsController,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'e.g., 2.5',
                         border: OutlineInputBorder(
@@ -257,7 +262,7 @@ class _AddEditWasteItemPageState extends State<AddEditWasteItemPage> {
                   Expanded(
                     flex: 1,
                     child: DropdownButtonFormField<UnitType>(
-                      value: _selectedUnit,
+                      initialValue: _selectedUnit,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -266,7 +271,9 @@ class _AddEditWasteItemPageState extends State<AddEditWasteItemPage> {
                       items: UnitType.values.map((unit) {
                         return DropdownMenuItem(
                           value: unit,
-                          child: Text(unit == UnitType.kilogram ? 'kg' : 'unit'),
+                          child: Text(
+                            unit == UnitType.kilogram ? 'kg' : 'unit',
+                          ),
                         );
                       }).toList(),
                       onChanged: (value) {
@@ -308,9 +315,7 @@ class _AddEditWasteItemPageState extends State<AddEditWasteItemPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isSubmitting
-                      ? null
-                      : () => _submitForm(context),
+                  onPressed: _isSubmitting ? null : () => _submitForm(context),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     backgroundColor: theme.primaryColor,
@@ -322,8 +327,9 @@ class _AddEditWasteItemPageState extends State<AddEditWasteItemPage> {
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : Text(

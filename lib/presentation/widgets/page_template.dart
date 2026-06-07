@@ -1,0 +1,52 @@
+import 'package:flutter/material.dart';
+
+class PageTemplate extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Widget? child;
+
+  const PageTemplate({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 32),
+            Icon(
+              icon,
+              size: 56,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            if (child != null) ...[
+              const SizedBox(height: 24),
+              Expanded(child: child!),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
