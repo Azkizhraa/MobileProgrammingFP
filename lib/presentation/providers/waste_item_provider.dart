@@ -5,7 +5,7 @@ import '../../services/waste_item_service.dart';
 class WasteItemProvider extends ChangeNotifier {
   final WasteItemService _service = WasteItemService();
 
-  List<WasteItem> _wasteItems = [];
+  final List<WasteItem> _wasteItems = [];
   WasteItem? _selectedItem;
   bool _isLoading = false;
   String? _errorMessage;

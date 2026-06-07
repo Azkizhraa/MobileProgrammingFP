@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../constants/waste_categories.dart';
 import '../../models/waste_item_model.dart';
+import '../providers/eco_stats_provider.dart';
 import '../providers/waste_item_provider.dart';
 import '../widgets/waste_item_card.dart';
 import 'add_edit_waste_item_page.dart';
 
 class WasteItemsPage extends StatefulWidget {
-  const WasteItemsPage({Key? key}) : super(key: key);
+  const WasteItemsPage({super.key});
 
   @override
   State<WasteItemsPage> createState() => _WasteItemsPageState();
@@ -19,19 +20,14 @@ class _WasteItemsPageState extends State<WasteItemsPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Waste Items'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Waste Items'), elevation: 0),
       body: Consumer<WasteItemProvider>(
         builder: (context, provider, child) {
           return StreamBuilder<List<WasteItem>>(
             stream: provider.wasteItemsStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
+                return const Center(child: CircularProgressIndicator());
               }
 
               if (snapshot.hasError) {
@@ -126,9 +122,8 @@ class _WasteItemsPageState extends State<WasteItemsPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const AddEditWasteItemPage(
-                isEditing: false,
-              ),
+              builder: (context) =>
+                  const AddEditWasteItemPage(isEditing: false),
             ),
           );
         },
@@ -143,31 +138,42 @@ class _WasteItemsPageState extends State<WasteItemsPage> {
     WasteItem item,
     WasteItemProvider provider,
   ) {
+    final ecoStatsProvider = context.read<EcoStatsProvider>();
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Item?'),
         content: Text(
           'Are you sure you want to delete "${item.itemName}"? This action cannot be undone.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               if (item.id != null) {
                 final success = await provider.deleteWasteItem(item.id!);
-                if (success && mounted) {
+                if (success) {
+                  if (!ecoStatsProvider.isInitialized) {
+                    await ecoStatsProvider.init();
+                  }
+                  await ecoStatsProvider.decrementItemsLogged();
+                }
+
+                if (!context.mounted) return;
+
+                if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Item deleted successfully'),
                       backgroundColor: Colors.green,
                     ),
                   );
-                } else if (mounted) {
+                } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -179,10 +185,7 @@ class _WasteItemsPageState extends State<WasteItemsPage> {
                 }
               }
             },
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -231,10 +234,10 @@ class _WasteItemsPageState extends State<WasteItemsPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: Colors.green.withOpacity(0.3),
+                    color: Colors.green.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Text(
@@ -253,10 +256,7 @@ class _WasteItemsPageState extends State<WasteItemsPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                item.notes,
-                style: theme.textTheme.bodyMedium,
-              ),
+              Text(item.notes, style: theme.textTheme.bodyMedium),
               const SizedBox(height: 24),
             ],
           ),

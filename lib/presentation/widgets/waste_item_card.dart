@@ -9,12 +9,12 @@ class WasteItemCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   const WasteItemCard({
-    Key? key,
+    super.key,
     required this.item,
     required this.onEdit,
     required this.onDelete,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
