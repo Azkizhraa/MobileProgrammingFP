@@ -115,6 +115,17 @@ class NotificationService {
     }
   }
 
+  /// Show the air quality notification immediately (for testing)
+  static Future<void> showImmediateAirQualityNotification(
+    AirQualityData airQuality,
+  ) async {
+    await showImmediateNotification(
+      'Eco-Action Reminder',
+      _getNotificationMessage(airQuality),
+      payload: 'eco_action_${airQuality.city}',
+    );
+  }
+
   /// Show immediate notification (for testing)
   static Future<void> showImmediateNotification(
     String title,

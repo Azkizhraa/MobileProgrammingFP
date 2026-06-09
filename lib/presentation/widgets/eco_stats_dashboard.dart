@@ -1,44 +1,25 @@
 import 'package:flutter/material.dart';
 
 class EcoStatsDashboard extends StatelessWidget {
-  final int dayStreak;
   final int totalItemsLogged;
 
-  const EcoStatsDashboard({
-    super.key,
-    required this.dayStreak,
-    required this.totalItemsLogged,
-  });
+  const EcoStatsDashboard({super.key, required this.totalItemsLogged});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Stats Grid
-        Row(
-          children: [
-            // Day Streak Card
-            Expanded(
-              child: _StatCard(
-                icon: Icons.local_fire_department,
-                iconColor: Colors.orange,
-                label: 'Day Streak',
-                value: dayStreak.toString(),
-                unit: 'days',
-              ),
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: _StatCard(
+              icon: Icons.recycling,
+              iconColor: Colors.green,
+              label: 'Items Logged',
+              value: totalItemsLogged.toString(),
+              unit: 'items',
             ),
-            const SizedBox(width: 12),
-            // Total Items Card
-            Expanded(
-              child: _StatCard(
-                icon: Icons.recycling,
-                iconColor: Colors.green,
-                label: 'Items Logged',
-                value: totalItemsLogged.toString(),
-                unit: 'items',
-              ),
-            ),
-          ],
+          ),
         ),
       ],
     );
