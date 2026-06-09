@@ -14,6 +14,44 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  Future<void> _sendTestNotification() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final airQualityProvider = Provider.of<AirQualityProvider>(
+      context,
+      listen: false,
+    );
+    final permissionGranted =
+        await NotificationService.requestNotificationPermissions();
+
+    if (!permissionGranted) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Notification permission was not granted.'),
+        ),
+      );
+      return;
+    }
+
+    if (airQualityProvider.airQualityData == null) {
+      await airQualityProvider.refreshAirQuality();
+    }
+
+    final airQuality = airQualityProvider.airQualityData;
+    if (airQuality == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not load air quality data.')),
+      );
+      return;
+    }
+
+    await NotificationService.showImmediateAirQualityNotification(airQuality);
+
+    if (!mounted) return;
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Air quality notification sent.')),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -93,10 +131,18 @@ class _HomePageState extends State<HomePage> {
                 Consumer<EcoStatsProvider>(
                   builder: (context, ecoStatsProvider, _) {
                     return EcoStatsDashboard(
-                      dayStreak: ecoStatsProvider.dayStreak,
                       totalItemsLogged: ecoStatsProvider.totalItemsLogged,
                     );
                   },
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _sendTestNotification,
+                    icon: const Icon(Icons.notifications_active),
+                    label: const Text('Test Notification'),
+                  ),
                 ),
                 const SizedBox(height: 32),
               ],
