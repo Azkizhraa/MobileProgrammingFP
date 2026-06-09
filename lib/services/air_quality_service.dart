@@ -1,6 +1,5 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:geolocator/geolocator.dart';
 import '../config/api_keys.dart';
 
 class AirQualityData {
@@ -33,7 +32,6 @@ class AirQualityService {
   // API key is stored in lib/config/api_keys.dart (not committed to version control)
   static const String _apiKey = ApiKeys.waqiApiKey;
   static const String _aqiUrlHere = 'https://api.waqi.info/feed/here';
-  static const String _aqiUrlGeo = 'https://api.waqi.info/feed/geo';
 
   /// Convert numeric AQI to level description
   String _getAqiLevel(int aqi) {
@@ -46,20 +44,17 @@ class AirQualityService {
   }
 
   /// Fetch air quality data for current location
-  /// First tries IP-based location, then falls back to GPS if available
+  /// Uses IP-based location, so no GPS permission is needed.
   Future<AirQualityData?> fetchAirQualityData() async {
     try {
-      // First, try using IP-based location (faster, no permissions needed)
       print('Fetching air quality using IP-based location...');
-      final data = await _fetchAirQualityFromHere();
-      if (data != null) {
+      final data = await _fetchAirQualityFromIP();
+      if (data == null) {
+        print('Failed to fetch air quality data via IP');
+      } else {
         print('Successfully fetched air quality data via IP');
-        return data;
       }
-
-      // Fallback to GPS-based location if IP method fails
-      print('IP method failed, attempting GPS-based location...');
-      return await _fetchAirQualityFromGPS();
+      return data;
     } catch (e) {
       print('Error fetching air quality data: $e');
       return null;
@@ -67,33 +62,15 @@ class AirQualityService {
   }
 
   /// Fetch air quality using IP-based location (no permissions needed)
-  Future<AirQualityData?> _fetchAirQualityFromHere() async {
+  Future<AirQualityData?> _fetchAirQualityFromIP() async {
     try {
-      final response = await http.get(
-        Uri.parse('$_aqiUrlHere?token=$_apiKey'),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(Uri.parse('$_aqiUrlHere?token=$_apiKey'))
+          .timeout(const Duration(seconds: 10));
 
       return _parseAirQualityResponse(response);
     } catch (e) {
       print('Error with IP-based location: $e');
-      return null;
-    }
-  }
-
-  /// Fetch air quality using GPS coordinates (requires location permission)
-  Future<AirQualityData?> _fetchAirQualityFromGPS() async {
-    try {
-      Position position = await _getCurrentLocation();
-
-      final response = await http.get(
-        Uri.parse(
-          '$_aqiUrlGeo?lat=${position.latitude}&lon=${position.longitude}&token=$_apiKey',
-        ),
-      ).timeout(const Duration(seconds: 10));
-
-      return _parseAirQualityResponse(response);
-    } catch (e) {
-      print('Error with GPS-based location: $e');
       return null;
     }
   }
@@ -117,7 +94,7 @@ class AirQualityService {
       final city = data['city']['name'] ?? 'Unknown';
       final aqi = (data['aqi'] ?? 50).toInt();
       final aqiLevel = _getAqiLevel(aqi);
-      
+
       // Get primary pollutant
       String pollutant = 'N/A';
       if (data['dominentpol'] != null) {
@@ -135,32 +112,6 @@ class AirQualityService {
       print('Error parsing air quality response: $e');
       return null;
     }
-  }
-
-  /// Get current location
-  Future<Position> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw Exception('Location services are disabled.');
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception('Location permissions are denied');
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception(
-          'Location permissions are permanently denied, please enable them in settings.');
-    }
-
-    return await Geolocator.getCurrentPosition();
   }
 
   /// Get air quality recommendation based on AQI level
