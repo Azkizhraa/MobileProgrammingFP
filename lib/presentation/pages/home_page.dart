@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/notification_service.dart';
-import '../providers/weather_provider.dart';
+import '../providers/air_quality_provider.dart';
 import '../providers/eco_stats_provider.dart';
 import '../widgets/air_quality_banner.dart';
 import '../widgets/eco_stats_dashboard.dart';

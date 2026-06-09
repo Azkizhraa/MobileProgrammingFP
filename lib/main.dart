@@ -6,7 +6,7 @@ import 'app/sortify_app.dart';
 import 'presentation/providers/waste_item_provider.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/eco_stats_provider.dart';
-import 'presentation/providers/weather_provider.dart';
+import 'presentation/providers/air_quality_provider.dart';
 import 'services/notification_service.dart';
 
 void main() async {
