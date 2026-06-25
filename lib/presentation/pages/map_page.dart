@@ -16,6 +16,8 @@ class MapPage extends StatefulWidget {
 
 class _MapPageState extends State<MapPage> {
   final RecyclingPointService _service = RecyclingPointService();
+  final MapController _mapController = MapController();
+  double _currentZoom = 13;
 
   static const LatLng _surabayaCenter = LatLng(-7.2575, 112.7521);
 
@@ -31,43 +33,61 @@ class _MapPageState extends State<MapPage> {
   }
 
   Future<void> _loadMapData() async {
+    LatLng location = _surabayaCenter;
+    List<RecyclingPoint> points = [];
+    String? message;
+
     try {
-      final userLocation = await _getUserLocation();
-      final points = await _service.getSurabayaRecyclingPoints();
-
-      points.sort((a, b) {
-        final distance = const Distance();
-
-        final distanceA = distance.as(
-          LengthUnit.Kilometer,
-          userLocation,
-          LatLng(a.latitude, a.longitude),
-        );
-
-        final distanceB = distance.as(
-          LengthUnit.Kilometer,
-          userLocation,
-          LatLng(b.latitude, b.longitude),
-        );
-
-        return distanceA.compareTo(distanceB);
-      });
-
-      setState(() {
-        _userLocation = userLocation;
-        _points = points;
-        _isLoading = false;
-      });
+      location = await _getUserLocation().timeout(
+        const Duration(seconds: 8),
+      );
     } catch (e) {
-      final points = await _service.getSurabayaRecyclingPoints();
-
-      setState(() {
-        _points = points;
-        _errorMessage =
-        'Location unavailable. Showing Surabaya recycling points.';
-        _isLoading = false;
-      });
+      message = 'Location unavailable. Showing Surabaya area.';
     }
+
+    try {
+      points = await _service.getSurabayaRecyclingPoints().timeout(
+        const Duration(seconds: 8),
+      );
+
+      debugPrint('Loaded recycling points: ${points.length}');
+
+      if (points.isEmpty) {
+        message = 'No recycling points found yet.';
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Firestore recycling points error: $e');
+      debugPrint('Firestore stack trace: $stackTrace');
+
+      message = 'Could not load recycling points. Showing map only.';
+    }
+
+    points.sort((a, b) {
+      final distance = const Distance();
+
+      final distanceA = distance.as(
+        LengthUnit.Kilometer,
+        location,
+        LatLng(a.latitude, a.longitude),
+      );
+
+      final distanceB = distance.as(
+        LengthUnit.Kilometer,
+        location,
+        LatLng(b.latitude, b.longitude),
+      );
+
+      return distanceA.compareTo(distanceB);
+    });
+
+    if (!mounted) return;
+
+    setState(() {
+      _userLocation = location;
+      _points = points;
+      _errorMessage = message;
+      _isLoading = false;
+    });
   }
 
   Future<LatLng> _getUserLocation() async {
@@ -93,9 +113,9 @@ class _MapPageState extends State<MapPage> {
 
     final position = await Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
+        accuracy: LocationAccuracy.medium,
       ),
-    );
+    ).timeout(const Duration(seconds: 8));
 
     return LatLng(position.latitude, position.longitude);
   }

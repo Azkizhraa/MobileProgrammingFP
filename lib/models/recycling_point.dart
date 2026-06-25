@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class RecyclingPoint {
   final String id;
   final String name;
@@ -22,12 +24,14 @@ class RecyclingPoint {
   });
 
   factory RecyclingPoint.fromFirestore(String id, Map<String, dynamic> data) {
+    final GeoPoint geoPoint = data['geopoint'] as GeoPoint;
+
     return RecyclingPoint(
       id: id,
       name: data['name'] ?? '',
-      address: data['address'] ?? '',
-      latitude: (data['latitude'] ?? 0).toDouble(),
-      longitude: (data['longitude'] ?? 0).toDouble(),
+      address: data['address'] ?? data['adress'] ?? '',
+      latitude: geoPoint.latitude,
+      longitude: geoPoint.longitude,
       city: data['city'] ?? '',
       type: data['type'] ?? '',
       acceptedWasteTypes: List<String>.from(data['acceptedWasteTypes'] ?? []),
